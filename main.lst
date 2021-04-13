@@ -1,0 +1,896 @@
+   1               		.file	"main.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.__vector_14,"ax",@progbits
+  11               	.global	__vector_14
+  13               	__vector_14:
+  14               	.LFB1:
+  15               		.file 1 "suart.c"
+   1:suart.c       **** #include "suart.h"
+   2:suart.c       **** #include <avr/interrupt.h>
+   3:suart.c       **** #include <avr/pgmspace.h>
+   4:suart.c       **** #include <stdint.h>
+   5:suart.c       **** 
+   6:suart.c       **** #define SUART_PRESCALER       8
+   7:suart.c       **** #define SUART_PRESCALER_MASK   (1 << CS01)
+   8:suart.c       **** 
+   9:suart.c       **** #define SUART_TIMER_TOP \
+  10:suart.c       **** 	(F_CPU / SUART_PRESCALER / SUART_BAUD_RATE / 3 - 1)
+  11:suart.c       **** 
+  12:suart.c       **** #if SUART_TIMER_TOP > 0xff
+  13:suart.c       **** 
+  14:suart.c       **** #warning "SUART_TIMER_TOP greater than 0xFF: " \
+  15:suart.c       **** 	"increase prescaler, lower F_CPU or use a 16 bit timer"
+  16:suart.c       **** 
+  17:suart.c       **** #endif
+  18:suart.c       **** 
+  19:suart.c       **** #define SUART_RX_BUF_SIZE    32
+  20:suart.c       **** 
+  21:suart.c       **** #define SUART_TX_HIGH()        (SUART_TX_OUT |= (1 << SUART_TX_PIN))
+  22:suart.c       **** #define SUART_TX_LOW()         (SUART_TX_OUT &= ~(1 << SUART_TX_PIN))
+  23:suart.c       **** #define SUART_RX_READ()        (SUART_RX_IN & (1 << SUART_RX_PIN))
+  24:suart.c       **** 
+  25:suart.c       **** static uint8_t _quot;
+  26:suart.c       **** volatile static uint8_t
+  27:suart.c       **** 	_qin,
+  28:suart.c       **** 	_rx_ready,
+  29:suart.c       **** 	_tx_busy,
+  30:suart.c       **** 	_tx_cnt,
+  31:suart.c       **** 	_tx_bits;
+  32:suart.c       **** 
+  33:suart.c       **** volatile static uint16_t _tx_byte;
+  34:suart.c       **** volatile static char _rx_buf[SUART_RX_BUF_SIZE];
+  35:suart.c       **** 
+  36:suart.c       **** ISR(TIMER0_COMPA_vect)
+  37:suart.c       **** {
+  16               		.loc 1 37 1 view -0
+  17               		.cfi_startproc
+  18 0000 1F92 1FB6 		__gcc_isr 1
+  18      1F92 1124 
+  18      8F93 
+  19 000a 9F93      		push r25
+  20               	.LCFI0:
+  21               		.cfi_def_cfa_offset 3
+  22               		.cfi_offset 25, -2
+  23 000c EF93      		push r30
+  24               	.LCFI1:
+  25               		.cfi_def_cfa_offset 4
+  26               		.cfi_offset 30, -3
+  27 000e FF93      		push r31
+  28               	.LCFI2:
+  29               		.cfi_def_cfa_offset 5
+  30               		.cfi_offset 31, -4
+  31               	/* prologue: Signal */
+  32               	/* frame size = 0 */
+  33               	/* stack size = 3...7 */
+  34               	.L__stack_usage = 3 + __gcc_isr.n_pushed
+  38:suart.c       **** 	static uint8_t _rx_mask, _rx_cnt, _rx_bits, _rx_byte, _rx_wait_stop_bit;
+  35               		.loc 1 38 2 view .LVU1
+  39:suart.c       **** 	uint8_t tmp;
+  36               		.loc 1 39 2 view .LVU2
+  40:suart.c       **** 
+  41:suart.c       **** 	/* transmitter */
+  42:suart.c       **** 	if(_tx_busy)
+  37               		.loc 1 42 2 view .LVU3
+  38               		.loc 1 42 5 is_stmt 0 view .LVU4
+  39 0010 8091 0000 		lds r24,_tx_busy
+  40               		.loc 1 42 4 view .LVU5
+  41 0014 8823      		tst r24
+  42 0016 01F0      		breq .L2
+  43:suart.c       **** 	{
+  44:suart.c       **** 		tmp = _tx_cnt;
+  43               		.loc 1 44 3 is_stmt 1 view .LVU6
+  44               		.loc 1 44 7 is_stmt 0 view .LVU7
+  45 0018 9091 0000 		lds r25,_tx_cnt
+  46               	.LVL0:
+  45:suart.c       **** 		if(--tmp == 0)
+  47               		.loc 1 45 3 is_stmt 1 view .LVU8
+  48               		.loc 1 45 5 is_stmt 0 view .LVU9
+  49 001c 8FEF      		ldi r24,lo8(-1)
+  50 001e 890F      		add r24,r25
+  51               	.LVL1:
+  52               		.loc 1 45 5 view .LVU10
+  53 0020 9130      		cpi r25,lo8(1)
+  54 0022 01F4      		brne .L3
+  46:suart.c       **** 		{
+  47:suart.c       **** 			if(_tx_byte & 1)
+  55               		.loc 1 47 4 is_stmt 1 view .LVU11
+  56               		.loc 1 47 16 is_stmt 0 view .LVU12
+  57 0024 8091 0000 		lds r24,_tx_byte
+  58 0028 9091 0000 		lds r25,_tx_byte+1
+  59               	.LVL2:
+  60               		.loc 1 47 6 view .LVU13
+  61 002c 80FF      		sbrs r24,0
+  62 002e 00C0      		rjmp .L4
+  48:suart.c       **** 			{
+  49:suart.c       **** 				SUART_TX_HIGH();
+  63               		.loc 1 49 5 is_stmt 1 view .LVU14
+  64 0030 2C9A      		sbi 0x5,4
+  65               	.L5:
+  50:suart.c       **** 			}
+  51:suart.c       **** 			else
+  52:suart.c       **** 			{
+  53:suart.c       **** 				SUART_TX_LOW();
+  54:suart.c       **** 			}
+  55:suart.c       **** 
+  56:suart.c       **** 			_tx_byte >>= 1;
+  66               		.loc 1 56 4 view .LVU15
+  67               		.loc 1 56 13 is_stmt 0 view .LVU16
+  68 0032 8091 0000 		lds r24,_tx_byte
+  69 0036 9091 0000 		lds r25,_tx_byte+1
+  70 003a 9695      		lsr r25
+  71 003c 8795      		ror r24
+  72 003e 9093 0000 		sts _tx_byte+1,r25
+  73 0042 8093 0000 		sts _tx_byte,r24
+  57:suart.c       **** 			tmp = 3;
+  74               		.loc 1 57 4 is_stmt 1 view .LVU17
+  75               	.LVL3:
+  58:suart.c       **** 			if(--_tx_bits == 0)
+  76               		.loc 1 58 4 view .LVU18
+  77               		.loc 1 58 7 is_stmt 0 view .LVU19
+  78 0046 8091 0000 		lds r24,_tx_bits
+  79 004a 8150      		subi r24,lo8(-(-1))
+  80               		.loc 1 58 6 view .LVU20
+  81 004c 8093 0000 		sts _tx_bits,r24
+  82 0050 8111      		cpse r24,__zero_reg__
+  83 0052 00C0      		rjmp .L13
+  59:suart.c       **** 			{
+  60:suart.c       **** 				_tx_busy = 0;
+  84               		.loc 1 60 5 is_stmt 1 view .LVU21
+  85               		.loc 1 60 14 is_stmt 0 view .LVU22
+  86 0054 1092 0000 		sts _tx_busy,__zero_reg__
+  87               	.L13:
+  57:suart.c       **** 			if(--_tx_bits == 0)
+  88               		.loc 1 57 8 view .LVU23
+  89 0058 83E0      		ldi r24,lo8(3)
+  90               	.LVL4:
+  91               	.L3:
+  61:suart.c       **** 			}
+  62:suart.c       **** 		}
+  63:suart.c       **** 
+  64:suart.c       **** 		_tx_cnt = tmp;
+  92               		.loc 1 64 3 is_stmt 1 view .LVU24
+  93               		.loc 1 64 11 is_stmt 0 view .LVU25
+  94 005a 8093 0000 		sts _tx_cnt,r24
+  95               	.LVL5:
+  96               	.L2:
+  65:suart.c       **** 	}
+  66:suart.c       **** 
+  67:suart.c       **** 	/* receiver */
+  68:suart.c       **** 	if(_rx_wait_stop_bit)
+  97               		.loc 1 68 2 is_stmt 1 view .LVU26
+  98               		.loc 1 68 4 is_stmt 0 view .LVU27
+  99 005e 8091 0000 		lds r24,_rx_wait_stop_bit.5
+ 100 0062 8823      		tst r24
+ 101 0064 01F0      		breq .L6
+  69:suart.c       **** 	{
+  70:suart.c       **** 		if(--_rx_cnt == 0)
+ 102               		.loc 1 70 3 is_stmt 1 view .LVU28
+ 103               		.loc 1 70 6 is_stmt 0 view .LVU29
+ 104 0066 8091 0000 		lds r24,_rx_cnt.4
+ 105 006a 8150      		subi r24,lo8(-(-1))
+ 106               		.loc 1 70 5 view .LVU30
+ 107 006c 8093 0000 		sts _rx_cnt.4,r24
+ 108 0070 8111      		cpse r24,__zero_reg__
+ 109 0072 00C0      		rjmp .L1
+  71:suart.c       **** 		{
+  72:suart.c       **** 			_rx_wait_stop_bit = 0;
+ 110               		.loc 1 72 4 is_stmt 1 view .LVU31
+ 111               		.loc 1 72 22 is_stmt 0 view .LVU32
+ 112 0074 1092 0000 		sts _rx_wait_stop_bit.5,__zero_reg__
+  73:suart.c       **** 			_rx_ready = 0;
+ 113               		.loc 1 73 4 is_stmt 1 view .LVU33
+ 114               		.loc 1 73 14 is_stmt 0 view .LVU34
+ 115 0078 1092 0000 		sts _rx_ready,__zero_reg__
+  74:suart.c       **** 			_rx_buf[_qin] = _rx_byte;
+ 116               		.loc 1 74 4 is_stmt 1 view .LVU35
+ 117               		.loc 1 74 11 is_stmt 0 view .LVU36
+ 118 007c E091 0000 		lds r30,_qin
+ 119 0080 F0E0      		ldi r31,0
+ 120               		.loc 1 74 18 view .LVU37
+ 121 0082 8091 0000 		lds r24,_rx_byte.3
+ 122 0086 E050      		subi r30,lo8(-(_rx_buf))
+ 123 0088 F040      		sbci r31,hi8(-(_rx_buf))
+ 124 008a 8083      		st Z,r24
+  75:suart.c       **** 			if(++_qin >= SUART_RX_BUF_SIZE)
+ 125               		.loc 1 75 4 is_stmt 1 view .LVU38
+ 126               		.loc 1 75 7 is_stmt 0 view .LVU39
+ 127 008c 8091 0000 		lds r24,_qin
+ 128 0090 8F5F      		subi r24,lo8(-(1))
+ 129               		.loc 1 75 6 view .LVU40
+ 130 0092 8093 0000 		sts _qin,r24
+ 131 0096 8032      		cpi r24,lo8(32)
+ 132 0098 00F0      		brlo .L1
+  76:suart.c       **** 			{
+  77:suart.c       **** 				_qin = 0;
+ 133               		.loc 1 77 5 is_stmt 1 view .LVU41
+ 134               		.loc 1 77 10 is_stmt 0 view .LVU42
+ 135 009a 1092 0000 		sts _qin,__zero_reg__
+ 136               	.L1:
+ 137               	/* epilogue start */
+  78:suart.c       **** 			}
+  79:suart.c       **** 		}
+  80:suart.c       **** 	}
+  81:suart.c       **** 	else
+  82:suart.c       **** 	{
+  83:suart.c       **** 		if(_rx_ready)
+  84:suart.c       **** 		{
+  85:suart.c       **** 			tmp = _rx_cnt;
+  86:suart.c       **** 			if(--tmp == 0)
+  87:suart.c       **** 			{
+  88:suart.c       **** 				tmp = 3;
+  89:suart.c       **** 				if(SUART_RX_READ())
+  90:suart.c       **** 				{
+  91:suart.c       **** 					_rx_byte |= _rx_mask;
+  92:suart.c       **** 				}
+  93:suart.c       **** 
+  94:suart.c       **** 				_rx_mask <<= 1;
+  95:suart.c       **** 				if(--_rx_bits == 0)
+  96:suart.c       **** 				{
+  97:suart.c       **** 					_rx_wait_stop_bit = 1;
+  98:suart.c       **** 				}
+  99:suart.c       **** 			}
+ 100:suart.c       **** 
+ 101:suart.c       **** 			_rx_cnt = tmp;
+ 102:suart.c       **** 		}
+ 103:suart.c       **** 		else
+ 104:suart.c       **** 		{
+ 105:suart.c       **** 			if(!SUART_RX_READ())
+ 106:suart.c       **** 			{
+ 107:suart.c       **** 				_rx_ready = 1;
+ 108:suart.c       **** 				_rx_byte = 0;
+ 109:suart.c       **** 				_rx_cnt = 4;
+ 110:suart.c       **** 				_rx_bits = 8;
+ 111:suart.c       **** 				_rx_mask = 1;
+ 112:suart.c       **** 			}
+ 113:suart.c       **** 		}
+ 114:suart.c       **** 	}
+ 115:suart.c       **** }
+ 138               		.loc 1 115 1 view .LVU43
+ 139 009e FF91      		pop r31
+ 140 00a0 EF91      		pop r30
+ 141 00a2 9F91      		pop r25
+ 142 00a4 8F91 1F90 		__gcc_isr 2
+ 142      1FBE 1F90 
+ 143 00ac 1895      		reti
+ 144               	.LVL6:
+ 145               	.L4:
+  53:suart.c       **** 			}
+ 146               		.loc 1 53 5 is_stmt 1 view .LVU44
+ 147 00ae 2C98      		cbi 0x5,4
+ 148 00b0 00C0      		rjmp .L5
+ 149               	.LVL7:
+ 150               	.L6:
+  83:suart.c       **** 		{
+ 151               		.loc 1 83 3 view .LVU45
+  83:suart.c       **** 		{
+ 152               		.loc 1 83 6 is_stmt 0 view .LVU46
+ 153 00b2 8091 0000 		lds r24,_rx_ready
+  83:suart.c       **** 		{
+ 154               		.loc 1 83 5 view .LVU47
+ 155 00b6 8823      		tst r24
+ 156 00b8 01F0      		breq .L10
+  85:suart.c       **** 			if(--tmp == 0)
+ 157               		.loc 1 85 4 is_stmt 1 view .LVU48
+  85:suart.c       **** 			if(--tmp == 0)
+ 158               		.loc 1 85 8 is_stmt 0 view .LVU49
+ 159 00ba 9091 0000 		lds r25,_rx_cnt.4
+ 160               	.LVL8:
+  86:suart.c       **** 			{
+ 161               		.loc 1 86 4 is_stmt 1 view .LVU50
+  86:suart.c       **** 			{
+ 162               		.loc 1 86 6 is_stmt 0 view .LVU51
+ 163 00be 8FEF      		ldi r24,lo8(-1)
+ 164 00c0 890F      		add r24,r25
+ 165               	.LVL9:
+  86:suart.c       **** 			{
+ 166               		.loc 1 86 6 view .LVU52
+ 167 00c2 9130      		cpi r25,lo8(1)
+ 168 00c4 01F4      		brne .L11
+  88:suart.c       **** 				if(SUART_RX_READ())
+ 169               		.loc 1 88 5 is_stmt 1 view .LVU53
+ 170               	.LVL10:
+  89:suart.c       **** 				{
+ 171               		.loc 1 89 5 view .LVU54
+  91:suart.c       **** 				}
+ 172               		.loc 1 91 15 is_stmt 0 view .LVU55
+ 173 00c6 8091 0000 		lds r24,_rx_mask.2
+  89:suart.c       **** 				{
+ 174               		.loc 1 89 7 view .LVU56
+ 175 00ca 1B9B      		sbis 0x3,3
+ 176 00cc 00C0      		rjmp .L12
+  91:suart.c       **** 				}
+ 177               		.loc 1 91 6 is_stmt 1 view .LVU57
+  91:suart.c       **** 				}
+ 178               		.loc 1 91 15 is_stmt 0 view .LVU58
+ 179 00ce 9091 0000 		lds r25,_rx_byte.3
+ 180 00d2 982B      		or r25,r24
+ 181 00d4 9093 0000 		sts _rx_byte.3,r25
+ 182               	.L12:
+  94:suart.c       **** 				if(--_rx_bits == 0)
+ 183               		.loc 1 94 5 is_stmt 1 view .LVU59
+  94:suart.c       **** 				if(--_rx_bits == 0)
+ 184               		.loc 1 94 14 is_stmt 0 view .LVU60
+ 185 00d8 880F      		lsl r24
+ 186 00da 8093 0000 		sts _rx_mask.2,r24
+  95:suart.c       **** 				{
+ 187               		.loc 1 95 5 is_stmt 1 view .LVU61
+  95:suart.c       **** 				{
+ 188               		.loc 1 95 8 is_stmt 0 view .LVU62
+ 189 00de 8091 0000 		lds r24,_rx_bits.1
+ 190 00e2 8150      		subi r24,lo8(-(-1))
+  95:suart.c       **** 				{
+ 191               		.loc 1 95 7 view .LVU63
+ 192 00e4 8093 0000 		sts _rx_bits.1,r24
+ 193 00e8 8111      		cpse r24,__zero_reg__
+ 194 00ea 00C0      		rjmp .L14
+  97:suart.c       **** 				}
+ 195               		.loc 1 97 6 is_stmt 1 view .LVU64
+  97:suart.c       **** 				}
+ 196               		.loc 1 97 24 is_stmt 0 view .LVU65
+ 197 00ec 81E0      		ldi r24,lo8(1)
+ 198 00ee 8093 0000 		sts _rx_wait_stop_bit.5,r24
+ 199               	.L14:
+  88:suart.c       **** 				if(SUART_RX_READ())
+ 200               		.loc 1 88 9 view .LVU66
+ 201 00f2 83E0      		ldi r24,lo8(3)
+ 202               	.LVL11:
+ 203               	.L11:
+ 101:suart.c       **** 		}
+ 204               		.loc 1 101 4 is_stmt 1 view .LVU67
+ 101:suart.c       **** 		}
+ 205               		.loc 1 101 12 is_stmt 0 view .LVU68
+ 206 00f4 8093 0000 		sts _rx_cnt.4,r24
+ 207 00f8 00C0      		rjmp .L1
+ 208               	.LVL12:
+ 209               	.L10:
+ 105:suart.c       **** 			{
+ 210               		.loc 1 105 4 is_stmt 1 view .LVU69
+ 105:suart.c       **** 			{
+ 211               		.loc 1 105 6 is_stmt 0 view .LVU70
+ 212 00fa 1B99      		sbic 0x3,3
+ 213 00fc 00C0      		rjmp .L1
+ 107:suart.c       **** 				_rx_byte = 0;
+ 214               		.loc 1 107 5 is_stmt 1 view .LVU71
+ 107:suart.c       **** 				_rx_byte = 0;
+ 215               		.loc 1 107 15 is_stmt 0 view .LVU72
+ 216 00fe 81E0      		ldi r24,lo8(1)
+ 217 0100 8093 0000 		sts _rx_ready,r24
+ 108:suart.c       **** 				_rx_cnt = 4;
+ 218               		.loc 1 108 5 is_stmt 1 view .LVU73
+ 108:suart.c       **** 				_rx_cnt = 4;
+ 219               		.loc 1 108 14 is_stmt 0 view .LVU74
+ 220 0104 1092 0000 		sts _rx_byte.3,__zero_reg__
+ 109:suart.c       **** 				_rx_bits = 8;
+ 221               		.loc 1 109 5 is_stmt 1 view .LVU75
+ 109:suart.c       **** 				_rx_bits = 8;
+ 222               		.loc 1 109 13 is_stmt 0 view .LVU76
+ 223 0108 94E0      		ldi r25,lo8(4)
+ 224 010a 9093 0000 		sts _rx_cnt.4,r25
+ 110:suart.c       **** 				_rx_mask = 1;
+ 225               		.loc 1 110 5 is_stmt 1 view .LVU77
+ 110:suart.c       **** 				_rx_mask = 1;
+ 226               		.loc 1 110 14 is_stmt 0 view .LVU78
+ 227 010e 98E0      		ldi r25,lo8(8)
+ 228 0110 9093 0000 		sts _rx_bits.1,r25
+ 111:suart.c       **** 			}
+ 229               		.loc 1 111 5 is_stmt 1 view .LVU79
+ 111:suart.c       **** 			}
+ 230               		.loc 1 111 14 is_stmt 0 view .LVU80
+ 231 0114 8093 0000 		sts _rx_mask.2,r24
+ 232               		.loc 1 115 1 view .LVU81
+ 233 0118 00C0      		rjmp .L1
+ 234               		__gcc_isr 0,r24
+ 235               		.cfi_endproc
+ 236               	.LFE1:
+ 238               		.section	.text.suart_init,"ax",@progbits
+ 239               	.global	suart_init
+ 241               	suart_init:
+ 242               	.LFB2:
+ 116:suart.c       **** 
+ 117:suart.c       **** void suart_init(void)
+ 118:suart.c       **** {
+ 243               		.loc 1 118 1 is_stmt 1 view -0
+ 244               		.cfi_startproc
+ 245               	/* prologue: function */
+ 246               	/* frame size = 0 */
+ 247               	/* stack size = 0 */
+ 248               	.L__stack_usage = 0
+ 119:suart.c       **** 	_tx_busy = 0;
+ 249               		.loc 1 119 2 view .LVU83
+ 250               		.loc 1 119 11 is_stmt 0 view .LVU84
+ 251 0000 1092 0000 		sts _tx_busy,__zero_reg__
+ 120:suart.c       **** 	_rx_ready = 0;
+ 252               		.loc 1 120 2 is_stmt 1 view .LVU85
+ 253               		.loc 1 120 12 is_stmt 0 view .LVU86
+ 254 0004 1092 0000 		sts _rx_ready,__zero_reg__
+ 121:suart.c       **** 	SUART_TX_HIGH();
+ 255               		.loc 1 121 2 is_stmt 1 view .LVU87
+ 256 0008 2C9A      		sbi 0x5,4
+ 122:suart.c       **** 	SUART_TX_DIR |= (1 << SUART_TX_PIN);
+ 257               		.loc 1 122 2 view .LVU88
+ 258               		.loc 1 122 15 is_stmt 0 view .LVU89
+ 259 000a 249A      		sbi 0x4,4
+ 123:suart.c       **** 	SUART_RX_DIR &= ~(1 << SUART_RX_PIN);
+ 260               		.loc 1 123 2 is_stmt 1 view .LVU90
+ 261               		.loc 1 123 15 is_stmt 0 view .LVU91
+ 262 000c 2398      		cbi 0x4,3
+ 124:suart.c       **** 	OCR0A = SUART_TIMER_TOP;
+ 263               		.loc 1 124 2 is_stmt 1 view .LVU92
+ 264               		.loc 1 124 8 is_stmt 0 view .LVU93
+ 265 000e 84E4      		ldi r24,lo8(68)
+ 266 0010 87BD      		out 0x27,r24
+ 125:suart.c       **** 	TCCR0A = (1 << WGM01);
+ 267               		.loc 1 125 2 is_stmt 1 view .LVU94
+ 268               		.loc 1 125 9 is_stmt 0 view .LVU95
+ 269 0012 82E0      		ldi r24,lo8(2)
+ 270 0014 84BD      		out 0x24,r24
+ 126:suart.c       **** 	TCCR0B = SUART_PRESCALER_MASK;
+ 271               		.loc 1 126 2 is_stmt 1 view .LVU96
+ 272               		.loc 1 126 9 is_stmt 0 view .LVU97
+ 273 0016 85BD      		out 0x25,r24
+ 127:suart.c       **** 	TIMSK0 |= (1 << OCIE0A);
+ 274               		.loc 1 127 2 is_stmt 1 view .LVU98
+ 275               		.loc 1 127 9 is_stmt 0 view .LVU99
+ 276 0018 EEE6      		ldi r30,lo8(110)
+ 277 001a F0E0      		ldi r31,0
+ 278 001c 8081      		ld r24,Z
+ 279 001e 8260      		ori r24,lo8(2)
+ 280 0020 8083      		st Z,r24
+ 128:suart.c       **** 	TCNT0 = 0;
+ 281               		.loc 1 128 2 is_stmt 1 view .LVU100
+ 282               		.loc 1 128 8 is_stmt 0 view .LVU101
+ 283 0022 16BC      		out 0x26,__zero_reg__
+ 284               	/* epilogue start */
+ 129:suart.c       **** }
+ 285               		.loc 1 129 1 view .LVU102
+ 286 0024 0895      		ret
+ 287               		.cfi_endproc
+ 288               	.LFE2:
+ 290               		.section	.text.suart_available,"ax",@progbits
+ 291               	.global	suart_available
+ 293               	suart_available:
+ 294               	.LFB3:
+ 130:suart.c       **** 
+ 131:suart.c       **** uint8_t suart_available(void)
+ 132:suart.c       **** {
+ 295               		.loc 1 132 1 is_stmt 1 view -0
+ 296               		.cfi_startproc
+ 297               	/* prologue: function */
+ 298               	/* frame size = 0 */
+ 299               	/* stack size = 0 */
+ 300               	.L__stack_usage = 0
+ 133:suart.c       **** 	return _qin != _quot;
+ 301               		.loc 1 133 2 view .LVU104
+ 302               		.loc 1 133 14 is_stmt 0 view .LVU105
+ 303 0000 9091 0000 		lds r25,_qin
+ 304 0004 81E0      		ldi r24,lo8(1)
+ 305 0006 2091 0000 		lds r18,_quot
+ 306 000a 2913      		cpse r18,r25
+ 307 000c 00C0      		rjmp .L23
+ 308 000e 80E0      		ldi r24,0
+ 309               	.L23:
+ 310               	/* epilogue start */
+ 134:suart.c       **** }
+ 311               		.loc 1 134 1 view .LVU106
+ 312 0010 0895      		ret
+ 313               		.cfi_endproc
+ 314               	.LFE3:
+ 316               		.section	.text.suart_tx,"ax",@progbits
+ 317               	.global	suart_tx
+ 319               	suart_tx:
+ 320               	.LFB4:
+ 135:suart.c       **** 
+ 136:suart.c       **** void suart_tx(const char c)
+ 137:suart.c       **** {
+ 321               		.loc 1 137 1 is_stmt 1 view -0
+ 322               		.cfi_startproc
+ 323               	/* prologue: function */
+ 324               	/* frame size = 0 */
+ 325               	/* stack size = 0 */
+ 326               	.L__stack_usage = 0
+ 327               	.LVL13:
+ 328               	.L25:
+ 138:suart.c       **** 	while(_tx_busy) ;
+ 329               		.loc 1 138 18 discriminator 1 view .LVU108
+ 330               		.loc 1 138 7 discriminator 1 view .LVU109
+ 331               		.loc 1 138 8 is_stmt 0 discriminator 1 view .LVU110
+ 332 0000 9091 0000 		lds r25,_tx_busy
+ 333               		.loc 1 138 7 discriminator 1 view .LVU111
+ 334 0004 9111      		cpse r25,__zero_reg__
+ 335 0006 00C0      		rjmp .L25
+ 139:suart.c       **** 	_tx_cnt = 3;
+ 336               		.loc 1 139 2 is_stmt 1 view .LVU112
+ 337               		.loc 1 139 10 is_stmt 0 view .LVU113
+ 338 0008 93E0      		ldi r25,lo8(3)
+ 339 000a 9093 0000 		sts _tx_cnt,r25
+ 140:suart.c       **** 	_tx_bits = 10;
+ 340               		.loc 1 140 2 is_stmt 1 view .LVU114
+ 341               		.loc 1 140 11 is_stmt 0 view .LVU115
+ 342 000e 9AE0      		ldi r25,lo8(10)
+ 343 0010 9093 0000 		sts _tx_bits,r25
+ 141:suart.c       **** 	_tx_byte = (c << 1) | 0x200;
+ 344               		.loc 1 141 2 is_stmt 1 view .LVU116
+ 345               		.loc 1 141 16 is_stmt 0 view .LVU117
+ 346 0014 90E0      		ldi r25,0
+ 347 0016 880F      		lsl r24
+ 348 0018 991F      		rol r25
+ 349               	.LVL14:
+ 350               		.loc 1 141 22 view .LVU118
+ 351 001a 9260      		ori r25,2
+ 352               		.loc 1 141 11 view .LVU119
+ 353 001c 9093 0000 		sts _tx_byte+1,r25
+ 354 0020 8093 0000 		sts _tx_byte,r24
+ 142:suart.c       **** 	_tx_busy = 1;
+ 355               		.loc 1 142 2 is_stmt 1 view .LVU120
+ 356               		.loc 1 142 11 is_stmt 0 view .LVU121
+ 357 0024 81E0      		ldi r24,lo8(1)
+ 358 0026 8093 0000 		sts _tx_busy,r24
+ 359               	/* epilogue start */
+ 143:suart.c       **** }
+ 360               		.loc 1 143 1 view .LVU122
+ 361 002a 0895      		ret
+ 362               		.cfi_endproc
+ 363               	.LFE4:
+ 365               		.section	.text.suart_rx,"ax",@progbits
+ 366               	.global	suart_rx
+ 368               	suart_rx:
+ 369               	.LFB5:
+ 144:suart.c       **** 
+ 145:suart.c       **** int16_t suart_rx(void)
+ 146:suart.c       **** {
+ 370               		.loc 1 146 1 is_stmt 1 view -0
+ 371               		.cfi_startproc
+ 372               	/* prologue: function */
+ 373               	/* frame size = 0 */
+ 374               	/* stack size = 0 */
+ 375               	.L__stack_usage = 0
+ 147:suart.c       **** 	int16_t c = -1;
+ 376               		.loc 1 147 2 view .LVU124
+ 377               	.LVL15:
+ 148:suart.c       **** 	if(_quot != _qin)
+ 378               		.loc 1 148 2 view .LVU125
+ 379               		.loc 1 148 11 is_stmt 0 view .LVU126
+ 380 0000 9091 0000 		lds r25,_quot
+ 381 0004 8091 0000 		lds r24,_qin
+ 147:suart.c       **** 	int16_t c = -1;
+ 382               		.loc 1 147 10 view .LVU127
+ 383 0008 2FEF      		ldi r18,lo8(-1)
+ 384 000a 3FEF      		ldi r19,lo8(-1)
+ 385               		.loc 1 148 4 view .LVU128
+ 386 000c 9817      		cp r25,r24
+ 387 000e 01F0      		breq .L27
+ 149:suart.c       **** 	{
+ 150:suart.c       **** 		c = _rx_buf[_quot];
+ 388               		.loc 1 150 3 is_stmt 1 view .LVU129
+ 389               		.loc 1 150 14 is_stmt 0 view .LVU130
+ 390 0010 E92F      		mov r30,r25
+ 391 0012 F0E0      		ldi r31,0
+ 392 0014 E050      		subi r30,lo8(-(_rx_buf))
+ 393 0016 F040      		sbci r31,hi8(-(_rx_buf))
+ 394 0018 2081      		ld r18,Z
+ 395               		.loc 1 150 5 view .LVU131
+ 396 001a 30E0      		ldi r19,0
+ 397               	.LVL16:
+ 151:suart.c       **** 		if(++_quot >= SUART_RX_BUF_SIZE)
+ 398               		.loc 1 151 3 is_stmt 1 view .LVU132
+ 399               		.loc 1 151 6 is_stmt 0 view .LVU133
+ 400 001c 9F5F      		subi r25,lo8(-(1))
+ 401               		.loc 1 151 5 view .LVU134
+ 402 001e 9032      		cpi r25,lo8(32)
+ 403 0020 00F4      		brsh .L29
+ 404 0022 9093 0000 		sts _quot,r25
+ 405               	.LVL17:
+ 406               	.L27:
+ 152:suart.c       **** 		{
+ 153:suart.c       **** 			_quot = 0;
+ 154:suart.c       **** 		}
+ 155:suart.c       **** 	}
+ 156:suart.c       **** 
+ 157:suart.c       **** 	return c;
+ 158:suart.c       **** }
+ 407               		.loc 1 158 1 view .LVU135
+ 408 0026 C901      		movw r24,r18
+ 409               	/* epilogue start */
+ 410 0028 0895      		ret
+ 411               	.LVL18:
+ 412               	.L29:
+ 153:suart.c       **** 		}
+ 413               		.loc 1 153 4 is_stmt 1 view .LVU136
+ 153:suart.c       **** 		}
+ 414               		.loc 1 153 10 is_stmt 0 view .LVU137
+ 415 002a 1092 0000 		sts _quot,__zero_reg__
+ 416 002e 00C0      		rjmp .L27
+ 417               		.cfi_endproc
+ 418               	.LFE5:
+ 420               		.section	.text.suart_tx_str,"ax",@progbits
+ 421               	.global	suart_tx_str
+ 423               	suart_tx_str:
+ 424               	.LVL19:
+ 425               	.LFB6:
+ 159:suart.c       **** 
+ 160:suart.c       **** void suart_tx_str(const char *s)
+ 161:suart.c       **** {
+ 426               		.loc 1 161 1 is_stmt 1 view -0
+ 427               		.cfi_startproc
+ 428               		.loc 1 161 1 is_stmt 0 view .LVU139
+ 429 0000 CF93      		push r28
+ 430               	.LCFI3:
+ 431               		.cfi_def_cfa_offset 3
+ 432               		.cfi_offset 28, -2
+ 433 0002 DF93      		push r29
+ 434               	.LCFI4:
+ 435               		.cfi_def_cfa_offset 4
+ 436               		.cfi_offset 29, -3
+ 437               	/* prologue: function */
+ 438               	/* frame size = 0 */
+ 439               	/* stack size = 2 */
+ 440               	.L__stack_usage = 2
+ 162:suart.c       **** 	register char c;
+ 441               		.loc 1 162 2 is_stmt 1 view .LVU140
+ 163:suart.c       **** 	while((c = *s++))
+ 442               		.loc 1 163 2 view .LVU141
+ 443               	.L32:
+ 444               	.LVL20:
+ 445               		.loc 1 163 7 view .LVU142
+ 446               		.loc 1 163 15 is_stmt 0 view .LVU143
+ 447 0004 EC01      		movw r28,r24
+ 448               	.LVL21:
+ 449               		.loc 1 163 11 view .LVU144
+ 450 0006 8991      		ld r24,Y+
+ 451               	.LVL22:
+ 452               		.loc 1 163 7 view .LVU145
+ 453 0008 8111      		cpse r24,__zero_reg__
+ 454 000a 00C0      		rjmp .L33
+ 455               	/* epilogue start */
+ 164:suart.c       **** 	{
+ 165:suart.c       **** 		suart_tx(c);
+ 166:suart.c       **** 	}
+ 167:suart.c       **** }
+ 456               		.loc 1 167 1 view .LVU146
+ 457 000c DF91      		pop r29
+ 458 000e CF91      		pop r28
+ 459               	.LVL23:
+ 460               		.loc 1 167 1 view .LVU147
+ 461 0010 0895      		ret
+ 462               	.LVL24:
+ 463               	.L33:
+ 165:suart.c       **** 	}
+ 464               		.loc 1 165 3 is_stmt 1 view .LVU148
+ 465 0012 0E94 0000 		call suart_tx
+ 466               	.LVL25:
+ 163:suart.c       **** 	while((c = *s++))
+ 467               		.loc 1 163 15 is_stmt 0 view .LVU149
+ 468 0016 CE01      		movw r24,r28
+ 469 0018 00C0      		rjmp .L32
+ 470               		.cfi_endproc
+ 471               	.LFE6:
+ 473               		.section	.text.suart_tx_str_P,"ax",@progbits
+ 474               	.global	suart_tx_str_P
+ 476               	suart_tx_str_P:
+ 477               	.LVL26:
+ 478               	.LFB7:
+ 168:suart.c       **** 
+ 169:suart.c       **** void suart_tx_str_P(const char *s)
+ 170:suart.c       **** {
+ 479               		.loc 1 170 1 is_stmt 1 view -0
+ 480               		.cfi_startproc
+ 481               		.loc 1 170 1 is_stmt 0 view .LVU151
+ 482 0000 CF93      		push r28
+ 483               	.LCFI5:
+ 484               		.cfi_def_cfa_offset 3
+ 485               		.cfi_offset 28, -2
+ 486 0002 DF93      		push r29
+ 487               	.LCFI6:
+ 488               		.cfi_def_cfa_offset 4
+ 489               		.cfi_offset 29, -3
+ 490               	/* prologue: function */
+ 491               	/* frame size = 0 */
+ 492               	/* stack size = 2 */
+ 493               	.L__stack_usage = 2
+ 494 0004 EC01      		movw r28,r24
+ 171:suart.c       **** 	char c;
+ 495               		.loc 1 171 2 is_stmt 1 view .LVU152
+ 172:suart.c       **** 	while((c = pgm_read_byte(s++)))
+ 496               		.loc 1 172 2 view .LVU153
+ 497               	.LVL27:
+ 498               	.L35:
+ 499               		.loc 1 172 7 view .LVU154
+ 500               	.LBB2:
+ 501               		.loc 1 172 13 view .LVU155
+ 502               		.loc 1 172 13 view .LVU156
+ 503               		.loc 1 172 13 view .LVU157
+ 504 0006 FE01      		movw r30,r28
+ 505               	/* #APP */
+ 506               	 ;  172 "suart.c" 1
+ 507 0008 8491      		lpm r24, Z
+ 508               		
+ 509               	 ;  0 "" 2
+ 510               	.LVL28:
+ 511               		.loc 1 172 13 view .LVU158
+ 512               		.loc 1 172 13 is_stmt 0 view .LVU159
+ 513               	/* #NOAPP */
+ 514               	.LBE2:
+ 515               		.loc 1 172 7 view .LVU160
+ 516 000a 2196      		adiw r28,1
+ 517               	.LVL29:
+ 518               		.loc 1 172 7 view .LVU161
+ 519 000c 8111      		cpse r24,__zero_reg__
+ 520 000e 00C0      		rjmp .L36
+ 521               	/* epilogue start */
+ 173:suart.c       **** 	{
+ 174:suart.c       **** 		suart_tx(c);
+ 175:suart.c       **** 	}
+ 176:suart.c       **** }
+ 522               		.loc 1 176 1 view .LVU162
+ 523 0010 DF91      		pop r29
+ 524 0012 CF91      		pop r28
+ 525               	.LVL30:
+ 526               		.loc 1 176 1 view .LVU163
+ 527 0014 0895      		ret
+ 528               	.LVL31:
+ 529               	.L36:
+ 174:suart.c       **** 	}
+ 530               		.loc 1 174 3 is_stmt 1 view .LVU164
+ 531 0016 0E94 0000 		call suart_tx
+ 532               	.LVL32:
+ 174:suart.c       **** 	}
+ 533               		.loc 1 174 3 is_stmt 0 view .LVU165
+ 534 001a 00C0      		rjmp .L35
+ 535               		.cfi_endproc
+ 536               	.LFE7:
+ 538               		.section	.text.startup.main,"ax",@progbits
+ 539               	.global	main
+ 541               	main:
+ 542               	.LFB8:
+ 543               		.file 2 "main.c"
+   1:main.c        **** #include <avr/pgmspace.h>
+   2:main.c        **** #include "suart.c"
+   3:main.c        **** 
+   4:main.c        **** int main(void)
+   5:main.c        **** {
+ 544               		.loc 2 5 1 is_stmt 1 view -0
+ 545               		.cfi_startproc
+ 546               	/* prologue: function */
+ 547               	/* frame size = 0 */
+ 548               	/* stack size = 0 */
+ 549               	.L__stack_usage = 0
+   6:main.c        **** 	int16_t c;
+ 550               		.loc 2 6 2 view .LVU167
+   7:main.c        **** 	suart_init();
+ 551               		.loc 2 7 2 view .LVU168
+ 552 0000 0E94 0000 		call suart_init
+ 553               	.LVL33:
+   8:main.c        **** 	sei();
+ 554               		.loc 2 8 2 view .LVU169
+ 555               	/* #APP */
+ 556               	 ;  8 "main.c" 1
+ 557 0004 7894      		sei
+ 558               	 ;  0 "" 2
+   9:main.c        **** 	suart_tx_str_P(PSTR("HELLO WORLD.\n"));
+ 559               		.loc 2 9 2 view .LVU170
+ 560               	/* #NOAPP */
+ 561               	.LBB3:
+ 562               		.loc 2 9 17 view .LVU171
+ 563               		.loc 2 9 17 view .LVU172
+ 564               	.LBE3:
+ 565               		.loc 2 9 2 is_stmt 0 view .LVU173
+ 566 0006 80E0      		ldi r24,lo8(__c.0)
+ 567 0008 90E0      		ldi r25,hi8(__c.0)
+ 568 000a 0E94 0000 		call suart_tx_str_P
+ 569               	.LVL34:
+ 570               	.L38:
+  10:main.c        **** 	for(;;)
+ 571               		.loc 2 10 2 is_stmt 1 view .LVU174
+  11:main.c        **** 	{
+  12:main.c        **** 		c = suart_rx();
+ 572               		.loc 2 12 3 view .LVU175
+ 573               		.loc 2 12 7 is_stmt 0 view .LVU176
+ 574 000e 0E94 0000 		call suart_rx
+ 575               	.LVL35:
+  13:main.c        **** 		if(c > 0)
+ 576               		.loc 2 13 3 is_stmt 1 view .LVU177
+ 577               		.loc 2 13 5 is_stmt 0 view .LVU178
+ 578 0012 1816      		cp __zero_reg__,r24
+ 579 0014 1906      		cpc __zero_reg__,r25
+ 580 0016 04F4      		brge .L38
+  14:main.c        **** 		{
+  15:main.c        **** 			suart_tx(c);
+ 581               		.loc 2 15 4 is_stmt 1 view .LVU179
+ 582 0018 0E94 0000 		call suart_tx
+ 583               	.LVL36:
+ 584               		.loc 2 15 4 is_stmt 0 view .LVU180
+ 585 001c 00C0      		rjmp .L38
+ 586               		.cfi_endproc
+ 587               	.LFE8:
+ 589               		.section	.progmem.data.__c.0,"a"
+ 592               	__c.0:
+ 593 0000 4845 4C4C 		.string	"HELLO WORLD.\n"
+ 593      4F20 574F 
+ 593      524C 442E 
+ 593      0A00 
+ 594               		.section	.bss._rx_bits.1,"aw",@nobits
+ 597               	_rx_bits.1:
+ 598 0000 00        		.zero	1
+ 599               		.section	.bss._rx_mask.2,"aw",@nobits
+ 602               	_rx_mask.2:
+ 603 0000 00        		.zero	1
+ 604               		.section	.bss._rx_byte.3,"aw",@nobits
+ 607               	_rx_byte.3:
+ 608 0000 00        		.zero	1
+ 609               		.section	.bss._rx_cnt.4,"aw",@nobits
+ 612               	_rx_cnt.4:
+ 613 0000 00        		.zero	1
+ 614               		.section	.bss._rx_wait_stop_bit.5,"aw",@nobits
+ 617               	_rx_wait_stop_bit.5:
+ 618 0000 00        		.zero	1
+ 619               		.section	.bss._rx_buf,"aw",@nobits
+ 622               	_rx_buf:
+ 623 0000 0000 0000 		.zero	32
+ 623      0000 0000 
+ 623      0000 0000 
+ 623      0000 0000 
+ 623      0000 0000 
+ 624               		.section	.bss._tx_byte,"aw",@nobits
+ 627               	_tx_byte:
+ 628 0000 0000      		.zero	2
+ 629               		.section	.bss._tx_bits,"aw",@nobits
+ 632               	_tx_bits:
+ 633 0000 00        		.zero	1
+ 634               		.section	.bss._tx_cnt,"aw",@nobits
+ 637               	_tx_cnt:
+ 638 0000 00        		.zero	1
+ 639               		.section	.bss._tx_busy,"aw",@nobits
+ 642               	_tx_busy:
+ 643 0000 00        		.zero	1
+ 644               		.section	.bss._rx_ready,"aw",@nobits
+ 647               	_rx_ready:
+ 648 0000 00        		.zero	1
+ 649               		.section	.bss._qin,"aw",@nobits
+ 652               	_qin:
+ 653 0000 00        		.zero	1
+ 654               		.section	.bss._quot,"aw",@nobits
+ 657               	_quot:
+ 658 0000 00        		.zero	1
+ 659               		.text
+ 660               	.Letext0:
+ 661               		.file 3 "/usr/avr/include/stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 main.c
+     /tmp/cclkKBwB.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cclkKBwB.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cclkKBwB.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cclkKBwB.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cclkKBwB.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cclkKBwB.s:13     .text.__vector_14:0000000000000000 __vector_14
+                            *ABS*:0000000000000003 __gcc_isr.n_pushed.001
+     /tmp/cclkKBwB.s:642    .bss._tx_busy:0000000000000000 _tx_busy
+     /tmp/cclkKBwB.s:637    .bss._tx_cnt:0000000000000000 _tx_cnt
+     /tmp/cclkKBwB.s:627    .bss._tx_byte:0000000000000000 _tx_byte
+     /tmp/cclkKBwB.s:632    .bss._tx_bits:0000000000000000 _tx_bits
+     /tmp/cclkKBwB.s:617    .bss._rx_wait_stop_bit.5:0000000000000000 _rx_wait_stop_bit.5
+     /tmp/cclkKBwB.s:612    .bss._rx_cnt.4:0000000000000000 _rx_cnt.4
+     /tmp/cclkKBwB.s:647    .bss._rx_ready:0000000000000000 _rx_ready
+     /tmp/cclkKBwB.s:652    .bss._qin:0000000000000000 _qin
+     /tmp/cclkKBwB.s:607    .bss._rx_byte.3:0000000000000000 _rx_byte.3
+     /tmp/cclkKBwB.s:622    .bss._rx_buf:0000000000000000 _rx_buf
+     /tmp/cclkKBwB.s:602    .bss._rx_mask.2:0000000000000000 _rx_mask.2
+     /tmp/cclkKBwB.s:597    .bss._rx_bits.1:0000000000000000 _rx_bits.1
+     /tmp/cclkKBwB.s:241    .text.suart_init:0000000000000000 suart_init
+     /tmp/cclkKBwB.s:293    .text.suart_available:0000000000000000 suart_available
+     /tmp/cclkKBwB.s:657    .bss._quot:0000000000000000 _quot
+     /tmp/cclkKBwB.s:319    .text.suart_tx:0000000000000000 suart_tx
+     /tmp/cclkKBwB.s:368    .text.suart_rx:0000000000000000 suart_rx
+     /tmp/cclkKBwB.s:423    .text.suart_tx_str:0000000000000000 suart_tx_str
+     /tmp/cclkKBwB.s:476    .text.suart_tx_str_P:0000000000000000 suart_tx_str_P
+     /tmp/cclkKBwB.s:541    .text.startup.main:0000000000000000 main
+     /tmp/cclkKBwB.s:592    .progmem.data.__c.0:0000000000000000 __c.0
+
+UNDEFINED SYMBOLS
+__do_clear_bss

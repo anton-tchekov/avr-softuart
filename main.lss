@@ -1,0 +1,456 @@
+
+main.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .data         00000000  00800100  00800100  000002dc  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  1 .text         00000268  00000000  00000000  00000074  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .bss          0000002d  00800100  00800100  000002dc  2**0
+                  ALLOC
+  3 .comment      00000012  00000000  00000000  000002dc  2**0
+                  CONTENTS, READONLY
+  4 .note.gnu.avr.deviceinfo 00000040  00000000  00000000  000002f0  2**2
+                  CONTENTS, READONLY, OCTETS
+  5 .debug_aranges 00000058  00000000  00000000  00000330  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  6 .debug_info   000009be  00000000  00000000  00000388  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  7 .debug_abbrev 00000739  00000000  00000000  00000d46  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  8 .debug_line   000006b4  00000000  00000000  0000147f  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  9 .debug_frame  000000bc  00000000  00000000  00001b34  2**2
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 10 .debug_str    00000444  00000000  00000000  00001bf0  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 11 .debug_loc    000002eb  00000000  00000000  00002034  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 12 .debug_ranges 00000048  00000000  00000000  0000231f  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+
+Disassembly of section .text:
+
+00000000 <__vectors>:
+   0:	3a c0       	rjmp	.+116    	; 0x76 <__ctors_end>
+   2:	00 00       	nop
+   4:	48 c0       	rjmp	.+144    	; 0x96 <__bad_interrupt>
+   6:	00 00       	nop
+   8:	46 c0       	rjmp	.+140    	; 0x96 <__bad_interrupt>
+   a:	00 00       	nop
+   c:	44 c0       	rjmp	.+136    	; 0x96 <__bad_interrupt>
+   e:	00 00       	nop
+  10:	42 c0       	rjmp	.+132    	; 0x96 <__bad_interrupt>
+  12:	00 00       	nop
+  14:	40 c0       	rjmp	.+128    	; 0x96 <__bad_interrupt>
+  16:	00 00       	nop
+  18:	3e c0       	rjmp	.+124    	; 0x96 <__bad_interrupt>
+  1a:	00 00       	nop
+  1c:	3c c0       	rjmp	.+120    	; 0x96 <__bad_interrupt>
+  1e:	00 00       	nop
+  20:	3a c0       	rjmp	.+116    	; 0x96 <__bad_interrupt>
+  22:	00 00       	nop
+  24:	38 c0       	rjmp	.+112    	; 0x96 <__bad_interrupt>
+  26:	00 00       	nop
+  28:	36 c0       	rjmp	.+108    	; 0x96 <__bad_interrupt>
+  2a:	00 00       	nop
+  2c:	34 c0       	rjmp	.+104    	; 0x96 <__bad_interrupt>
+  2e:	00 00       	nop
+  30:	32 c0       	rjmp	.+100    	; 0x96 <__bad_interrupt>
+  32:	00 00       	nop
+  34:	30 c0       	rjmp	.+96     	; 0x96 <__bad_interrupt>
+  36:	00 00       	nop
+  38:	2f c0       	rjmp	.+94     	; 0x98 <__vector_14>
+  3a:	00 00       	nop
+  3c:	2c c0       	rjmp	.+88     	; 0x96 <__bad_interrupt>
+  3e:	00 00       	nop
+  40:	2a c0       	rjmp	.+84     	; 0x96 <__bad_interrupt>
+  42:	00 00       	nop
+  44:	28 c0       	rjmp	.+80     	; 0x96 <__bad_interrupt>
+  46:	00 00       	nop
+  48:	26 c0       	rjmp	.+76     	; 0x96 <__bad_interrupt>
+  4a:	00 00       	nop
+  4c:	24 c0       	rjmp	.+72     	; 0x96 <__bad_interrupt>
+  4e:	00 00       	nop
+  50:	22 c0       	rjmp	.+68     	; 0x96 <__bad_interrupt>
+  52:	00 00       	nop
+  54:	20 c0       	rjmp	.+64     	; 0x96 <__bad_interrupt>
+  56:	00 00       	nop
+  58:	1e c0       	rjmp	.+60     	; 0x96 <__bad_interrupt>
+  5a:	00 00       	nop
+  5c:	1c c0       	rjmp	.+56     	; 0x96 <__bad_interrupt>
+  5e:	00 00       	nop
+  60:	1a c0       	rjmp	.+52     	; 0x96 <__bad_interrupt>
+  62:	00 00       	nop
+  64:	18 c0       	rjmp	.+48     	; 0x96 <__bad_interrupt>
+  66:	00 00       	nop
+
+00000068 <__c.0>:
+  68:	48 45 4c 4c 4f 20 57 4f 52 4c 44 2e 0a 00           HELLO WORLD...
+
+00000076 <__ctors_end>:
+  76:	11 24       	eor	r1, r1
+  78:	1f be       	out	0x3f, r1	; 63
+  7a:	cf ef       	ldi	r28, 0xFF	; 255
+  7c:	d8 e0       	ldi	r29, 0x08	; 8
+  7e:	de bf       	out	0x3e, r29	; 62
+  80:	cd bf       	out	0x3d, r28	; 61
+
+00000082 <__do_clear_bss>:
+  82:	21 e0       	ldi	r18, 0x01	; 1
+  84:	a0 e0       	ldi	r26, 0x00	; 0
+  86:	b1 e0       	ldi	r27, 0x01	; 1
+  88:	01 c0       	rjmp	.+2      	; 0x8c <.do_clear_bss_start>
+
+0000008a <.do_clear_bss_loop>:
+  8a:	1d 92       	st	X+, r1
+
+0000008c <.do_clear_bss_start>:
+  8c:	ad 32       	cpi	r26, 0x2D	; 45
+  8e:	b2 07       	cpc	r27, r18
+  90:	e1 f7       	brne	.-8      	; 0x8a <.do_clear_bss_loop>
+  92:	dd d0       	rcall	.+442    	; 0x24e <main>
+  94:	e7 c0       	rjmp	.+462    	; 0x264 <_exit>
+
+00000096 <__bad_interrupt>:
+  96:	b4 cf       	rjmp	.-152    	; 0x0 <__vectors>
+
+00000098 <__vector_14>:
+
+volatile static uint16_t _tx_byte;
+volatile static char _rx_buf[SUART_RX_BUF_SIZE];
+
+ISR(TIMER0_COMPA_vect)
+{
+  98:	1f 92       	push	r1
+  9a:	1f b6       	in	r1, 0x3f	; 63
+  9c:	1f 92       	push	r1
+  9e:	11 24       	eor	r1, r1
+  a0:	8f 93       	push	r24
+  a2:	9f 93       	push	r25
+  a4:	ef 93       	push	r30
+  a6:	ff 93       	push	r31
+	static uint8_t _rx_mask, _rx_cnt, _rx_bits, _rx_byte, _rx_wait_stop_bit;
+	uint8_t tmp;
+
+	/* transmitter */
+	if(_tx_busy)
+  a8:	80 91 29 01 	lds	r24, 0x0129	; 0x800129 <_tx_busy>
+  ac:	88 23       	and	r24, r24
+  ae:	19 f1       	breq	.+70     	; 0xf6 <__vector_14+0x5e>
+	{
+		tmp = _tx_cnt;
+  b0:	90 91 28 01 	lds	r25, 0x0128	; 0x800128 <_tx_cnt>
+		if(--tmp == 0)
+  b4:	8f ef       	ldi	r24, 0xFF	; 255
+  b6:	89 0f       	add	r24, r25
+  b8:	91 30       	cpi	r25, 0x01	; 1
+  ba:	d9 f4       	brne	.+54     	; 0xf2 <__vector_14+0x5a>
+		{
+			if(_tx_byte & 1)
+  bc:	80 91 25 01 	lds	r24, 0x0125	; 0x800125 <_tx_byte>
+  c0:	90 91 26 01 	lds	r25, 0x0126	; 0x800126 <_tx_byte+0x1>
+  c4:	80 ff       	sbrs	r24, 0
+  c6:	3f c0       	rjmp	.+126    	; 0x146 <__vector_14+0xae>
+			{
+				SUART_TX_HIGH();
+  c8:	2c 9a       	sbi	0x05, 4	; 5
+			else
+			{
+				SUART_TX_LOW();
+			}
+
+			_tx_byte >>= 1;
+  ca:	80 91 25 01 	lds	r24, 0x0125	; 0x800125 <_tx_byte>
+  ce:	90 91 26 01 	lds	r25, 0x0126	; 0x800126 <_tx_byte+0x1>
+  d2:	96 95       	lsr	r25
+  d4:	87 95       	ror	r24
+  d6:	90 93 26 01 	sts	0x0126, r25	; 0x800126 <_tx_byte+0x1>
+  da:	80 93 25 01 	sts	0x0125, r24	; 0x800125 <_tx_byte>
+			tmp = 3;
+			if(--_tx_bits == 0)
+  de:	80 91 27 01 	lds	r24, 0x0127	; 0x800127 <_tx_bits>
+  e2:	81 50       	subi	r24, 0x01	; 1
+  e4:	80 93 27 01 	sts	0x0127, r24	; 0x800127 <_tx_bits>
+  e8:	81 11       	cpse	r24, r1
+  ea:	02 c0       	rjmp	.+4      	; 0xf0 <__vector_14+0x58>
+			{
+				_tx_busy = 0;
+  ec:	10 92 29 01 	sts	0x0129, r1	; 0x800129 <_tx_busy>
+			tmp = 3;
+  f0:	83 e0       	ldi	r24, 0x03	; 3
+			}
+		}
+
+		_tx_cnt = tmp;
+  f2:	80 93 28 01 	sts	0x0128, r24	; 0x800128 <_tx_cnt>
+	}
+
+	/* receiver */
+	if(_rx_wait_stop_bit)
+  f6:	80 91 04 01 	lds	r24, 0x0104	; 0x800104 <_rx_wait_stop_bit.5>
+  fa:	88 23       	and	r24, r24
+  fc:	31 f1       	breq	.+76     	; 0x14a <__vector_14+0xb2>
+	{
+		if(--_rx_cnt == 0)
+  fe:	80 91 03 01 	lds	r24, 0x0103	; 0x800103 <_rx_cnt.4>
+ 102:	81 50       	subi	r24, 0x01	; 1
+ 104:	80 93 03 01 	sts	0x0103, r24	; 0x800103 <_rx_cnt.4>
+ 108:	81 11       	cpse	r24, r1
+ 10a:	15 c0       	rjmp	.+42     	; 0x136 <__vector_14+0x9e>
+		{
+			_rx_wait_stop_bit = 0;
+ 10c:	10 92 04 01 	sts	0x0104, r1	; 0x800104 <_rx_wait_stop_bit.5>
+			_rx_ready = 0;
+ 110:	10 92 2a 01 	sts	0x012A, r1	; 0x80012a <_rx_ready>
+			_rx_buf[_qin] = _rx_byte;
+ 114:	e0 91 2b 01 	lds	r30, 0x012B	; 0x80012b <_qin>
+ 118:	f0 e0       	ldi	r31, 0x00	; 0
+ 11a:	80 91 02 01 	lds	r24, 0x0102	; 0x800102 <_rx_byte.3>
+ 11e:	eb 5f       	subi	r30, 0xFB	; 251
+ 120:	fe 4f       	sbci	r31, 0xFE	; 254
+ 122:	80 83       	st	Z, r24
+			if(++_qin >= SUART_RX_BUF_SIZE)
+ 124:	80 91 2b 01 	lds	r24, 0x012B	; 0x80012b <_qin>
+ 128:	8f 5f       	subi	r24, 0xFF	; 255
+ 12a:	80 93 2b 01 	sts	0x012B, r24	; 0x80012b <_qin>
+ 12e:	80 32       	cpi	r24, 0x20	; 32
+ 130:	10 f0       	brcs	.+4      	; 0x136 <__vector_14+0x9e>
+			{
+				_qin = 0;
+ 132:	10 92 2b 01 	sts	0x012B, r1	; 0x80012b <_qin>
+				_rx_bits = 8;
+				_rx_mask = 1;
+			}
+		}
+	}
+}
+ 136:	ff 91       	pop	r31
+ 138:	ef 91       	pop	r30
+ 13a:	9f 91       	pop	r25
+ 13c:	8f 91       	pop	r24
+ 13e:	1f 90       	pop	r1
+ 140:	1f be       	out	0x3f, r1	; 63
+ 142:	1f 90       	pop	r1
+ 144:	18 95       	reti
+				SUART_TX_LOW();
+ 146:	2c 98       	cbi	0x05, 4	; 5
+ 148:	c0 cf       	rjmp	.-128    	; 0xca <__vector_14+0x32>
+		if(_rx_ready)
+ 14a:	80 91 2a 01 	lds	r24, 0x012A	; 0x80012a <_rx_ready>
+ 14e:	88 23       	and	r24, r24
+ 150:	01 f1       	breq	.+64     	; 0x192 <__vector_14+0xfa>
+			tmp = _rx_cnt;
+ 152:	90 91 03 01 	lds	r25, 0x0103	; 0x800103 <_rx_cnt.4>
+			if(--tmp == 0)
+ 156:	8f ef       	ldi	r24, 0xFF	; 255
+ 158:	89 0f       	add	r24, r25
+ 15a:	91 30       	cpi	r25, 0x01	; 1
+ 15c:	b9 f4       	brne	.+46     	; 0x18c <__vector_14+0xf4>
+					_rx_byte |= _rx_mask;
+ 15e:	80 91 01 01 	lds	r24, 0x0101	; 0x800101 <_rx_mask.2>
+				if(SUART_RX_READ())
+ 162:	1b 9b       	sbis	0x03, 3	; 3
+ 164:	05 c0       	rjmp	.+10     	; 0x170 <__vector_14+0xd8>
+					_rx_byte |= _rx_mask;
+ 166:	90 91 02 01 	lds	r25, 0x0102	; 0x800102 <_rx_byte.3>
+ 16a:	98 2b       	or	r25, r24
+ 16c:	90 93 02 01 	sts	0x0102, r25	; 0x800102 <_rx_byte.3>
+				_rx_mask <<= 1;
+ 170:	88 0f       	add	r24, r24
+ 172:	80 93 01 01 	sts	0x0101, r24	; 0x800101 <_rx_mask.2>
+				if(--_rx_bits == 0)
+ 176:	80 91 00 01 	lds	r24, 0x0100	; 0x800100 <_rx_bits.1>
+ 17a:	81 50       	subi	r24, 0x01	; 1
+ 17c:	80 93 00 01 	sts	0x0100, r24	; 0x800100 <_rx_bits.1>
+ 180:	81 11       	cpse	r24, r1
+ 182:	03 c0       	rjmp	.+6      	; 0x18a <__vector_14+0xf2>
+					_rx_wait_stop_bit = 1;
+ 184:	81 e0       	ldi	r24, 0x01	; 1
+ 186:	80 93 04 01 	sts	0x0104, r24	; 0x800104 <_rx_wait_stop_bit.5>
+				tmp = 3;
+ 18a:	83 e0       	ldi	r24, 0x03	; 3
+			_rx_cnt = tmp;
+ 18c:	80 93 03 01 	sts	0x0103, r24	; 0x800103 <_rx_cnt.4>
+ 190:	d2 cf       	rjmp	.-92     	; 0x136 <__vector_14+0x9e>
+			if(!SUART_RX_READ())
+ 192:	1b 99       	sbic	0x03, 3	; 3
+ 194:	d0 cf       	rjmp	.-96     	; 0x136 <__vector_14+0x9e>
+				_rx_ready = 1;
+ 196:	81 e0       	ldi	r24, 0x01	; 1
+ 198:	80 93 2a 01 	sts	0x012A, r24	; 0x80012a <_rx_ready>
+				_rx_byte = 0;
+ 19c:	10 92 02 01 	sts	0x0102, r1	; 0x800102 <_rx_byte.3>
+				_rx_cnt = 4;
+ 1a0:	94 e0       	ldi	r25, 0x04	; 4
+ 1a2:	90 93 03 01 	sts	0x0103, r25	; 0x800103 <_rx_cnt.4>
+				_rx_bits = 8;
+ 1a6:	98 e0       	ldi	r25, 0x08	; 8
+ 1a8:	90 93 00 01 	sts	0x0100, r25	; 0x800100 <_rx_bits.1>
+				_rx_mask = 1;
+ 1ac:	80 93 01 01 	sts	0x0101, r24	; 0x800101 <_rx_mask.2>
+}
+ 1b0:	c2 cf       	rjmp	.-124    	; 0x136 <__vector_14+0x9e>
+
+000001b2 <suart_init>:
+
+void suart_init(void)
+{
+	_tx_busy = 0;
+ 1b2:	10 92 29 01 	sts	0x0129, r1	; 0x800129 <_tx_busy>
+	_rx_ready = 0;
+ 1b6:	10 92 2a 01 	sts	0x012A, r1	; 0x80012a <_rx_ready>
+	SUART_TX_HIGH();
+ 1ba:	2c 9a       	sbi	0x05, 4	; 5
+	SUART_TX_DIR |= (1 << SUART_TX_PIN);
+ 1bc:	24 9a       	sbi	0x04, 4	; 4
+	SUART_RX_DIR &= ~(1 << SUART_RX_PIN);
+ 1be:	23 98       	cbi	0x04, 3	; 4
+	OCR0A = SUART_TIMER_TOP;
+ 1c0:	84 e4       	ldi	r24, 0x44	; 68
+ 1c2:	87 bd       	out	0x27, r24	; 39
+	TCCR0A = (1 << WGM01);
+ 1c4:	82 e0       	ldi	r24, 0x02	; 2
+ 1c6:	84 bd       	out	0x24, r24	; 36
+	TCCR0B = SUART_PRESCALER_MASK;
+ 1c8:	85 bd       	out	0x25, r24	; 37
+	TIMSK0 |= (1 << OCIE0A);
+ 1ca:	ee e6       	ldi	r30, 0x6E	; 110
+ 1cc:	f0 e0       	ldi	r31, 0x00	; 0
+ 1ce:	80 81       	ld	r24, Z
+ 1d0:	82 60       	ori	r24, 0x02	; 2
+ 1d2:	80 83       	st	Z, r24
+	TCNT0 = 0;
+ 1d4:	16 bc       	out	0x26, r1	; 38
+}
+ 1d6:	08 95       	ret
+
+000001d8 <suart_tx>:
+	return _qin != _quot;
+}
+
+void suart_tx(const char c)
+{
+	while(_tx_busy) ;
+ 1d8:	90 91 29 01 	lds	r25, 0x0129	; 0x800129 <_tx_busy>
+ 1dc:	91 11       	cpse	r25, r1
+ 1de:	fc cf       	rjmp	.-8      	; 0x1d8 <suart_tx>
+	_tx_cnt = 3;
+ 1e0:	93 e0       	ldi	r25, 0x03	; 3
+ 1e2:	90 93 28 01 	sts	0x0128, r25	; 0x800128 <_tx_cnt>
+	_tx_bits = 10;
+ 1e6:	9a e0       	ldi	r25, 0x0A	; 10
+ 1e8:	90 93 27 01 	sts	0x0127, r25	; 0x800127 <_tx_bits>
+	_tx_byte = (c << 1) | 0x200;
+ 1ec:	90 e0       	ldi	r25, 0x00	; 0
+ 1ee:	88 0f       	add	r24, r24
+ 1f0:	99 1f       	adc	r25, r25
+ 1f2:	92 60       	ori	r25, 0x02	; 2
+ 1f4:	90 93 26 01 	sts	0x0126, r25	; 0x800126 <_tx_byte+0x1>
+ 1f8:	80 93 25 01 	sts	0x0125, r24	; 0x800125 <_tx_byte>
+	_tx_busy = 1;
+ 1fc:	81 e0       	ldi	r24, 0x01	; 1
+ 1fe:	80 93 29 01 	sts	0x0129, r24	; 0x800129 <_tx_busy>
+}
+ 202:	08 95       	ret
+
+00000204 <suart_rx>:
+
+int16_t suart_rx(void)
+{
+	int16_t c = -1;
+	if(_quot != _qin)
+ 204:	90 91 2c 01 	lds	r25, 0x012C	; 0x80012c <_quot>
+ 208:	80 91 2b 01 	lds	r24, 0x012B	; 0x80012b <_qin>
+	int16_t c = -1;
+ 20c:	2f ef       	ldi	r18, 0xFF	; 255
+ 20e:	3f ef       	ldi	r19, 0xFF	; 255
+	if(_quot != _qin)
+ 210:	98 17       	cp	r25, r24
+ 212:	59 f0       	breq	.+22     	; 0x22a <suart_rx+0x26>
+	{
+		c = _rx_buf[_quot];
+ 214:	e9 2f       	mov	r30, r25
+ 216:	f0 e0       	ldi	r31, 0x00	; 0
+ 218:	eb 5f       	subi	r30, 0xFB	; 251
+ 21a:	fe 4f       	sbci	r31, 0xFE	; 254
+ 21c:	20 81       	ld	r18, Z
+ 21e:	30 e0       	ldi	r19, 0x00	; 0
+		if(++_quot >= SUART_RX_BUF_SIZE)
+ 220:	9f 5f       	subi	r25, 0xFF	; 255
+ 222:	90 32       	cpi	r25, 0x20	; 32
+ 224:	20 f4       	brcc	.+8      	; 0x22e <suart_rx+0x2a>
+ 226:	90 93 2c 01 	sts	0x012C, r25	; 0x80012c <_quot>
+			_quot = 0;
+		}
+	}
+
+	return c;
+}
+ 22a:	c9 01       	movw	r24, r18
+ 22c:	08 95       	ret
+			_quot = 0;
+ 22e:	10 92 2c 01 	sts	0x012C, r1	; 0x80012c <_quot>
+ 232:	fb cf       	rjmp	.-10     	; 0x22a <suart_rx+0x26>
+
+00000234 <suart_tx_str_P>:
+		suart_tx(c);
+	}
+}
+
+void suart_tx_str_P(const char *s)
+{
+ 234:	cf 93       	push	r28
+ 236:	df 93       	push	r29
+ 238:	ec 01       	movw	r28, r24
+	char c;
+	while((c = pgm_read_byte(s++)))
+ 23a:	fe 01       	movw	r30, r28
+ 23c:	84 91       	lpm	r24, Z
+ 23e:	21 96       	adiw	r28, 0x01	; 1
+ 240:	81 11       	cpse	r24, r1
+ 242:	03 c0       	rjmp	.+6      	; 0x24a <suart_tx_str_P+0x16>
+	{
+		suart_tx(c);
+	}
+}
+ 244:	df 91       	pop	r29
+ 246:	cf 91       	pop	r28
+ 248:	08 95       	ret
+		suart_tx(c);
+ 24a:	c6 df       	rcall	.-116    	; 0x1d8 <suart_tx>
+ 24c:	f6 cf       	rjmp	.-20     	; 0x23a <suart_tx_str_P+0x6>
+
+0000024e <main>:
+#include "suart.c"
+
+int main(void)
+{
+	int16_t c;
+	suart_init();
+ 24e:	b1 df       	rcall	.-158    	; 0x1b2 <suart_init>
+	sei();
+ 250:	78 94       	sei
+	suart_tx_str_P(PSTR("HELLO WORLD.\n"));
+ 252:	88 e6       	ldi	r24, 0x68	; 104
+ 254:	90 e0       	ldi	r25, 0x00	; 0
+	for(;;)
+	{
+		c = suart_rx();
+ 256:	ee df       	rcall	.-36     	; 0x234 <suart_tx_str_P>
+ 258:	d5 df       	rcall	.-86     	; 0x204 <suart_rx>
+		if(c > 0)
+ 25a:	18 16       	cp	r1, r24
+ 25c:	19 06       	cpc	r1, r25
+		{
+			suart_tx(c);
+ 25e:	e4 f7       	brge	.-8      	; 0x258 <main+0xa>
+ 260:	bb df       	rcall	.-138    	; 0x1d8 <suart_tx>
+ 262:	fa cf       	rjmp	.-12     	; 0x258 <main+0xa>
+
+00000264 <_exit>:
+ 264:	f8 94       	cli
+
+00000266 <__stop_program>:
+ 266:	ff cf       	rjmp	.-2      	; 0x266 <__stop_program>
